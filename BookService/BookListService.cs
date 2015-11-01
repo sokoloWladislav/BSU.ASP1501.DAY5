@@ -9,67 +9,124 @@ namespace BookService
 {
     public class BookListService
     {
+        private List<Book> books;
+        private StorageAdapter storageAdapter;
+
+        private delegate bool EquivalenceCompareKey(Book book, string name);
         public enum Tags {Title, Author, Year, Languadge};
-        public static void AddBook(Stream sWrite, List<Book> books, Book book)
+
+        public BookListService(StorageAdapter storageAdapter)
         {
+            this.storageAdapter = storageAdapter;
+        }
+        public void AddBook(Book book)
+        {
+            books = storageAdapter.Load();
             if (books.Contains(book))
                 throw new ArgumentException("The book which to be added is already exist");
-            using (var writer = new BinaryWriter(sWrite))
-            {
-                writer.Write(book.Title);
-                writer.Write(book.Author);
-                writer.Write(book.Year);
-                writer.Write(book.Languadge);
-                writer.Flush();
-            }
+            books.Add(book);
+            Commit();
         }
 
-        public static void RemoveBook(Stream sWrite, List<Book> books, Book book)
+        public void RemoveBook(Book book)
         {
+            books = storageAdapter.Load();
+            if (!books.Contains(book))
+                throw new ArgumentException("The book which to be removed is not finded");
             books.Remove(book);
-            WriteAllBooks(sWrite, books);
+            Commit();
         }
 
-        /*public Book FindByTag(Tags tag, string str)
+        public List<Book> FindByTag(Tags tag, int name)
         {
-            
+            return FindByTag(tag, name.ToString());
         }
 
-        public void SortBooksByTag()
+        public List<Book> FindByTag(Tags tag, string name)
         {
-            
-        }*/
-
-        public static List<Book> ReadAllBooks(Stream s)
-        {
-            List<Book> books = new List<Book>();
-            using (BinaryReader reader = new BinaryReader(s))
+            books = storageAdapter.Load();
+            EquivalenceCompareKey key;
+            switch (tag)
             {
-                while (reader.PeekChar() != -1)
-                {
-                    string title = reader.ReadString();
-                    string author = reader.ReadString();
-                    int year = reader.ReadInt32();
-                    string languadge = reader.ReadString();
-                    books.Add(new Book(title, author, year, languadge));
-                }
+                case Tags.Title:
+                    key = FindByTitle;
+                    break;
+                case Tags.Author:
+                    key = FindByAuthor;
+                    break;
+                case Tags.Year:
+                    key = FindByYear;
+                    break;
+                case Tags.Languadge:
+                    key = FindByLanguadge;
+                    break;
+                default:
+                    key = FindByTitle;
+                    break;
             }
-            return books;
+            return Find(key, name);
         }
 
-        public static void WriteAllBooks(Stream s, List<Book> books)
+        public void SortBooksByTag(Tags tag)
         {
-            using (BinaryWriter writer = new BinaryWriter(s))
+            books = storageAdapter.Load();
+            Comparison<Book> comparison;
+            switch (tag)
             {
-                foreach (var book in books)
-                {
-                    writer.Write(book.Title);
-                    writer.Write(book.Author);
-                    writer.Write(book.Year);
-                    writer.Write(book.Languadge);
-                }
-                writer.Flush();
+                case Tags.Title:
+                    comparison = Book.CompareByTitle;
+                    break;
+                case Tags.Author:
+                    comparison = Book.CompareByAuthor;
+                    break;
+                case Tags.Year:
+                    comparison = Book.CompareByYear;
+                    break;
+                case Tags.Languadge:
+                    comparison = Book.CompareByLanguadge;
+                    break;
+                default:
+                    comparison = Book.CompareByTitle;
+                    break;
             }
+            books.Sort(comparison);
+            Commit();
+        }
+
+        private void Commit()
+        {
+            storageAdapter.Save(books);
+        }
+
+        private List<Book> Find(EquivalenceCompareKey key, string name)
+        {
+            List<Book> result = new List<Book>();
+            foreach (var book in books)
+            {
+                if(key(book, name))
+                    result.Add(book);
+            }
+            return result;
+        }
+
+        private bool FindByTitle(Book book, string title)
+        {
+            return book.Title == title;
+        }
+
+        private bool FindByAuthor(Book book, string author)
+        {
+            return book.Author == author;
+        }
+
+        private bool FindByYear(Book book, string year)
+        {
+            return book.Year == Int32.Parse(year);
+        }
+
+        private bool FindByLanguadge(Book book, string languadge)
+        {
+            return book.Languadge == languadge;
         }
     }
 }

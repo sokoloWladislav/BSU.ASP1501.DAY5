@@ -54,5 +54,25 @@ namespace BookService
         {
             return String.Format("Title: {0}, Author: {1}, Year: {2}, Languadge: {3}", Title, Author, Year, Languadge);
         }
+
+        public static int CompareByTitle(Book a, Book b)
+        {
+            return a.Title.CompareTo(b.Title);
+        }
+
+        public static int CompareByAuthor(Book a, Book b)
+        {
+            return a.Author.CompareTo(b.Author);
+        }
+
+        public static int CompareByYear(Book a, Book b)
+        {
+            return a.Year.CompareTo(b.Year);
+        }
+
+        public static int CompareByLanguadge(Book a, Book b)
+        {
+            return a.Languadge.CompareTo(b.Languadge);
+        }
     }
 }
